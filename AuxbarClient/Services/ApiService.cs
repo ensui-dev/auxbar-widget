@@ -33,7 +33,7 @@ public class ApiService : IDisposable
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync("/api/auth/login", new { email, password, forceLogin });
+            var response = await _httpClient.PostAsJsonAsync("/api/auth/login", new { email, password, forceLogin, clientType = "desktop" });
             var result = await response.Content.ReadFromJsonAsync<AuthResponse>();
 
             // Check for active session conflict
