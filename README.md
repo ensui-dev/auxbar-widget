@@ -161,6 +161,37 @@ _client.Send(JsonSerializer.Serialize(message));
 4. Auto-refresh timer renews access token every 12 minutes
 5. WebSocket reconnects automatically with new token
 
+## Privacy & Data Collection
+
+This application collects and transmits the following data to the Auxbar backend (`auxbar.me`):
+
+**Data Transmitted:**
+- Currently playing track information (title, artist, album name)
+- Album artwork (as base64 image data)
+- Playback state (playing/paused, progress, duration)
+- Authentication tokens (stored locally in `%APPDATA%/Auxbar/config.json`)
+
+**Data NOT Collected:**
+- No personal files or documents
+- No browsing history
+- No system information beyond media playback
+- No analytics or telemetry
+
+**Data Storage:**
+- Authentication tokens are stored locally and can be removed by signing out or deleting `%APPDATA%/Auxbar/`
+- Track data is transmitted in real-time and not permanently stored by the client
+
+For the backend privacy policy, see [auxbar.me/privacy](https://auxbar.me/privacy).
+
+## Code Signing Policy
+
+This project's releases are signed using a certificate provided by [SignPath Foundation](https://signpath.org).
+
+- Only official releases from this repository are signed
+- All commits are made by verified maintainers
+- Builds are reproducible from the public source code
+- The signing process follows SignPath Foundation's security requirements
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
