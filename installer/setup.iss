@@ -1,8 +1,11 @@
 ; Auxbar Installer Script for Inno Setup
 ; Download Inno Setup from: https://jrsoftware.org/isinfo.php
 
+#ifndef MyAppVersion
+  #define MyAppVersion "1.0.0"
+#endif
+
 #define MyAppName "Auxbar"
-#define MyAppVersion "1.0.0"
 #define MyAppPublisher "Auxbar"
 #define MyAppURL "https://auxbar.me"
 #define MyAppExeName "AuxbarClient.exe"
@@ -12,6 +15,7 @@
 AppId={{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
+AppVerName={#MyAppName} {#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
@@ -33,6 +37,7 @@ PrivilegesRequired=admin
 PrivilegesRequiredOverridesAllowed=dialog
 ; Uninstaller settings
 UninstallDisplayIcon={app}\{#MyAppExeName}
+UninstallDisplayName={#MyAppName}
 ; Installer icon
 SetupIconFile=..\AuxbarClient\Resources\app.ico
 ; Minimum Windows version (Windows 10)
@@ -42,12 +47,12 @@ MinVersion=10.0
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
-Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
-Name: "startupicon"; Description: "Start Auxbar when Windows starts"; GroupDescription: "Startup:"; Flags: unchecked
+Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
+Name: "startupicon"; Description: "Start Auxbar when Windows starts"; GroupDescription: "Startup options:"
 
 [Files]
-; Main executable
-Source: "..\AuxbarClient\bin\Release\net8.0-windows10.0.19041.0\win-x64\publish\AuxbarClient.exe"; DestDir: "{app}"; Flags: ignoreversion
+; Main executable - path works for both local and CI builds
+Source: "..\publish\AuxbarClient.exe"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 ; Start Menu

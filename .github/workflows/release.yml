@@ -21,15 +21,6 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      - name: Restore dependencies
-        run: dotnet restore AuxbarClient/AuxbarClient.csproj
-
-      - name: Build
-        run: dotnet build AuxbarClient/AuxbarClient.csproj -c Release --no-restore
-
-      - name: Publish
-        run: dotnet publish AuxbarClient/AuxbarClient.csproj -c Release -o ./publish --no-build
-
       - name: Get version from tag
         id: get_version
         run: |
@@ -37,8 +28,26 @@ jobs:
           echo "VERSION=$version" >> $env:GITHUB_OUTPUT
         shell: pwsh
 
-      - name: Create ZIP archive
-        run: Compress-Archive -Path ./publish/* -DestinationPath ./AuxbarClient-${{ steps.get_version.outputs.VERSION }}-win-x64.zip
+      - name: Restore dependencies
+        run: dotnet restore AuxbarClient/AuxbarClient.csproj
+
+      - name: Build
+        run: dotnet build AuxbarClient/AuxbarClient.csproj -c Release --no-restore
+
+      - name: Publish
+        run: |
+          dotnet publish AuxbarClient/AuxbarClient.csproj -c Release -o ./publish --no-build
+          Remove-Item ./publish/*.pdb -ErrorAction SilentlyContinue
+        shell: pwsh
+
+      - name: Install Inno Setup
+        run: |
+          choco install innosetup -y
+        shell: pwsh
+
+      - name: Build Installer
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DMyAppVersion="${{ steps.get_version.outputs.VERSION }}" installer/setup.iss
         shell: pwsh
 
       - name: Create Release
@@ -49,9 +58,15 @@ jobs:
             ## Auxbar Desktop Client v${{ steps.get_version.outputs.VERSION }}
 
             ### Installation
-            1. Download `AuxbarClient-${{ steps.get_version.outputs.VERSION }}-win-x64.zip`
-            2. Extract to a folder of your choice
-            3. Run `AuxbarClient.exe`
+            1. Download `AuxbarSetup-${{ steps.get_version.outputs.VERSION }}.exe`
+            2. Run the installer
+            3. Follow the setup wizard
+
+            ### Features
+            - Desktop shortcut (optional)
+            - Start Menu entry
+            - Start with Windows (optional)
+            - Clean uninstall via Windows Settings
 
             ### Requirements
             - Windows 10/11 (64-bit)
@@ -59,7 +74,7 @@ jobs:
             ### What's New
             See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.
           files: |
-            ./AuxbarClient-${{ steps.get_version.outputs.VERSION }}-win-x64.zip
+            installer/output/AuxbarSetup-${{ steps.get_version.outputs.VERSION }}.exe
           draft: false
           prerelease: false
         env:
