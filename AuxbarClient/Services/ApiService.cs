@@ -18,6 +18,7 @@ public class ApiService : IDisposable
 
     public event Action? TokenRefreshed;
     public event Action? TokenRefreshFailed;
+    public event Action? SessionConflict;
 
     public ApiService(string baseUrl = "https://auxbar.me")
     {
@@ -28,12 +29,18 @@ public class ApiService : IDisposable
         };
     }
 
-    public async Task<AuthResponse> LoginAsync(string email, string password)
+    public async Task<AuthResponse> LoginAsync(string email, string password, bool forceLogin = false)
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync("/api/auth/login", new { email, password });
+            var response = await _httpClient.PostAsJsonAsync("/api/auth/login", new { email, password, forceLogin });
             var result = await response.Content.ReadFromJsonAsync<AuthResponse>();
+
+            // Check for active session conflict
+            if (result?.Error == "ACTIVE_SESSION_EXISTS")
+            {
+                return new AuthResponse { Error = "ACTIVE_SESSION_EXISTS" };
+            }
 
             if (result?.AccessToken != null)
             {

@@ -98,6 +98,9 @@ public partial class MainForm : Form
         Text = "Auxbar";
         Size = new Size(450, 420);
         FormBorderStyle = FormBorderStyle.FixedSingle;
+
+        // Set window icon
+        Icon = LoadEmbeddedIcon();
         MaximizeBox = false;
         StartPosition = FormStartPosition.CenterScreen;
         BackColor = PixelBgDark;
@@ -285,6 +288,30 @@ public partial class MainForm : Form
         return placeholder;
     }
 
+    private static Icon? _cachedIcon;
+
+    private static Icon LoadEmbeddedIcon()
+    {
+        if (_cachedIcon != null) return _cachedIcon;
+
+        try
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+            using var stream = assembly.GetManifestResourceStream("AuxbarClient.Resources.app.ico");
+            if (stream != null)
+            {
+                _cachedIcon = new Icon(stream);
+                return _cachedIcon;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to load embedded icon: {ex.Message}");
+        }
+
+        return SystemIcons.Application;
+    }
+
     private Panel CreatePixelTextBoxPanel(Point location, Size size, out TextBox textBox)
     {
         var wrapper = new Panel
@@ -374,7 +401,7 @@ public partial class MainForm : Form
     {
         _notifyIcon = new NotifyIcon
         {
-            Icon = SystemIcons.Application,
+            Icon = LoadEmbeddedIcon(),
             Text = "Auxbar",
             Visible = true
         };
@@ -489,10 +516,40 @@ public partial class MainForm : Form
 
     private async void LoginButton_Click(object? sender, EventArgs e)
     {
+        await AttemptLogin(forceLogin: false);
+    }
+
+    private async Task AttemptLogin(bool forceLogin)
+    {
         _loginButton.Enabled = false;
         _loginButton.Text = "SIGNING IN...";
 
-        var result = await _apiService.LoginAsync(_emailBox.Text, _passwordBox.Text);
+        var result = await _apiService.LoginAsync(_emailBox.Text, _passwordBox.Text, forceLogin);
+
+        if (result.Error == "ACTIVE_SESSION_EXISTS")
+        {
+            // Show confirmation dialog for session conflict
+            var dialogResult = MessageBox.Show(
+                "You are already logged in on another device or instance.\n\n" +
+                "Do you want to log out from the other session and log in here instead?",
+                "Active Session Detected",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question
+            );
+
+            if (dialogResult == DialogResult.Yes)
+            {
+                // Retry with force login
+                await AttemptLogin(forceLogin: true);
+            }
+            else
+            {
+                // User cancelled, reset button
+                _loginButton.Enabled = true;
+                _loginButton.Text = "SIGN IN";
+            }
+            return;
+        }
 
         if (result.Error != null)
         {
