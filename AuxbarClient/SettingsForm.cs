@@ -27,10 +27,10 @@ public class SettingsForm : Form
     private static FontFamily? _pixelFontFamily;
 
     // Controls
-    private CheckBox _discordEnabledToggle = null!;
-    private CheckBox _showAlbumNameToggle = null!;
-    private CheckBox _showProgressToggle = null!;
-    private CheckBox _showButtonToggle = null!;
+    private PixelCheckBox _discordEnabledToggle = null!;
+    private PixelCheckBox _showAlbumNameToggle = null!;
+    private PixelCheckBox _showProgressToggle = null!;
+    private PixelCheckBox _showButtonToggle = null!;
 
     public SettingsForm(DiscordRpcService discordRpcService, Action onSettingsChanged)
     {
@@ -171,18 +171,21 @@ public class SettingsForm : Form
         }
     }
 
-    private CheckBox CreateToggle(string text, Point location)
+    private PixelCheckBox CreateToggle(string text, Point location)
     {
-        var toggle = new CheckBox
+        var toggle = new PixelCheckBox
         {
             Text = text,
             Font = GetPixelFont(6),
             ForeColor = PixelText,
-            BackColor = Color.Transparent,
             Location = location,
             Size = new Size(340, 25),
-            FlatStyle = FlatStyle.Flat,
-            Cursor = Cursors.Hand
+            Cursor = Cursors.Hand,
+            AccentColor = PixelAccent,
+            BoxBackColor = PixelBgMid,
+            BoxBorderColor = PixelBorder,
+            DisabledBackColor = PixelBgDark,
+            DisabledBorderColor = PixelTextDim
         };
 
         return toggle;
@@ -297,5 +300,103 @@ public class SettingsForm : Form
         }
 
         _onSettingsChanged?.Invoke();
+    }
+}
+
+// Custom owner-drawn checkbox with pixel art style
+public class PixelCheckBox : Control
+{
+    private bool _checked;
+    private bool _hovering;
+
+    public bool Checked
+    {
+        get => _checked;
+        set
+        {
+            if (_checked != value)
+            {
+                _checked = value;
+                Invalidate();
+                CheckedChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+    }
+
+    public Color AccentColor { get; set; } = Color.FromArgb(69, 230, 184);
+    public Color BoxBackColor { get; set; } = Color.FromArgb(45, 45, 68);
+    public Color BoxBorderColor { get; set; } = Color.FromArgb(92, 92, 138);
+    public Color DisabledBackColor { get; set; } = Color.FromArgb(26, 26, 46);
+    public Color DisabledBorderColor { get; set; } = Color.FromArgb(168, 158, 201);
+
+    public event EventHandler? CheckedChanged;
+
+    public PixelCheckBox()
+    {
+        SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint |
+                 ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw |
+                 ControlStyles.SupportsTransparentBackColor, true);
+        BackColor = Color.Transparent;
+        Size = new Size(200, 25);
+    }
+
+    protected override void OnPaint(PaintEventArgs e)
+    {
+        base.OnPaint(e);
+        var g = e.Graphics;
+        g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.None;
+
+        var boxSize = 14;
+        var boxY = (Height - boxSize) / 2;
+
+        // Draw checkbox background
+        using var bgBrush = new SolidBrush(Enabled ? (_hovering ? BoxBorderColor : BoxBackColor) : DisabledBackColor);
+        g.FillRectangle(bgBrush, 0, boxY, boxSize, boxSize);
+
+        // Draw checkbox border
+        using var borderPen = new Pen(Enabled ? BoxBorderColor : DisabledBorderColor, 2);
+        g.DrawRectangle(borderPen, 0, boxY, boxSize, boxSize);
+
+        // Draw checkmark if checked
+        if (Checked)
+        {
+            using var checkPen = new Pen(AccentColor, 2);
+            g.DrawLine(checkPen, 3, boxY + 7, 6, boxY + 10);
+            g.DrawLine(checkPen, 6, boxY + 10, 11, boxY + 4);
+        }
+
+        // Draw text
+        var textX = boxSize + 8;
+        using var textBrush = new SolidBrush(ForeColor);
+        g.DrawString(Text, Font, textBrush, textX, (Height - Font.Height) / 2f);
+    }
+
+    protected override void OnMouseEnter(EventArgs e)
+    {
+        base.OnMouseEnter(e);
+        _hovering = true;
+        Invalidate();
+    }
+
+    protected override void OnMouseLeave(EventArgs e)
+    {
+        base.OnMouseLeave(e);
+        _hovering = false;
+        Invalidate();
+    }
+
+    protected override void OnClick(EventArgs e)
+    {
+        base.OnClick(e);
+        if (Enabled)
+        {
+            Checked = !Checked;
+        }
+    }
+
+    protected override void OnEnabledChanged(EventArgs e)
+    {
+        base.OnEnabledChanged(e);
+        Invalidate();
     }
 }

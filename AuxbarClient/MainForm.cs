@@ -112,7 +112,7 @@ public partial class MainForm : Form
     private void InitializeComponent()
     {
         Text = "Auxbar";
-        Size = new Size(450, 380);
+        Size = new Size(450, 420);
         FormBorderStyle = FormBorderStyle.FixedSingle;
 
         // Set window icon
