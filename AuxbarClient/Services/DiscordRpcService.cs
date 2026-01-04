@@ -132,18 +132,30 @@ public class DiscordRpcService : IDisposable
             var artistDisplay = string.IsNullOrWhiteSpace(artist) || artist.Length < 2
                 ? "Unknown Artist"
                 : $"by {artist}";
+
+            // Add progress to artist display if enabled (format: "by Artist • 2:34 / 4:12")
+            if (ShowPlaybackProgress && track.Progress.HasValue && track.Duration.HasValue && track.Duration.Value > 0)
+            {
+                var currentTime = FormatTime(track.Progress.Value);
+                var totalTime = FormatTime(track.Duration.Value);
+                artistDisplay = $"{artistDisplay} • {currentTime} / {totalTime}";
+            }
+
             artistDisplay = TruncateString(artistDisplay, 128, "Unknown Artist");
 
             Console.WriteLine($"Discord RPC UpdatePresence: Title='{title}', Artist='{artistDisplay}', Playing={track.Playing}");
 
             // Use album art URL from server if we have a widget slug
             // The server serves the album art that was sent by this client
+            // Add cache-busting parameter using track title hash to force Discord to reload on track change
             var largeImageKey = "auxbar_logo";
             if (!string.IsNullOrEmpty(WidgetSlug) && !string.IsNullOrEmpty(track.AlbumArt))
             {
                 // Discord RPC supports external HTTPS URLs for images
                 // Use the server endpoint that serves the album art we sent
-                largeImageKey = $"{BaseUrl}/api/widget/album-art/{WidgetSlug}";
+                // Cache bust with track identifier to force image refresh on track change
+                var trackHash = Math.Abs($"{track.Title}-{track.Artist}".GetHashCode());
+                largeImageKey = $"{BaseUrl}/api/widget/album-art/{WidgetSlug}?t={trackHash}";
                 Console.WriteLine($"Discord RPC using album art URL: {largeImageKey}");
             }
             else if (string.IsNullOrEmpty(WidgetSlug))
@@ -175,20 +187,8 @@ public class DiscordRpcService : IDisposable
                 }
             };
 
-            // Add timestamps for elapsed time if playing and we have progress info
-            if (ShowPlaybackProgress && track.Playing && track.Progress.HasValue && track.Duration.HasValue && track.Duration.Value > 0)
-            {
-                var now = DateTime.UtcNow;
-                var elapsed = TimeSpan.FromMilliseconds(track.Progress.Value);
-                var remaining = TimeSpan.FromMilliseconds(track.Duration.Value - track.Progress.Value);
-
-                // Show time elapsed (start time in the past)
-                presence.Timestamps = new Timestamps
-                {
-                    Start = now - elapsed,
-                    End = now + remaining
-                };
-            }
+            // Note: We're showing progress in the State field instead of using Discord timestamps
+            // Discord timestamps auto-increment which causes issues when pausing/resuming
 
             // Add button to open Auxbar website if enabled
             if (ShowButton)
@@ -273,6 +273,16 @@ public class DiscordRpcService : IDisposable
             return str;
 
         return str[..(maxLength - 3)] + "...";
+    }
+
+    private static string FormatTime(long milliseconds)
+    {
+        var time = TimeSpan.FromMilliseconds(milliseconds);
+        if (time.TotalHours >= 1)
+        {
+            return $"{(int)time.TotalHours}:{time.Minutes:D2}:{time.Seconds:D2}";
+        }
+        return $"{time.Minutes}:{time.Seconds:D2}";
     }
 
     public void Dispose()
