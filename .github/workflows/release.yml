@@ -21,11 +21,14 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      - name: Get version from tag
+      - name: Get version from version.json
         id: get_version
         run: |
-          $version = "${{ github.ref_name }}".TrimStart('v')
+          # Read version from version.json (single source of truth for client)
+          $versionData = Get-Content -Path "version.json" -Raw | ConvertFrom-Json
+          $version = $versionData.version
           echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+          echo "Using version from version.json: $version"
         shell: pwsh
 
       - name: Restore dependencies

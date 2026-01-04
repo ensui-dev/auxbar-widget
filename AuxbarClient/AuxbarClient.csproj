@@ -14,6 +14,11 @@
     <RootNamespace>AuxbarClient</RootNamespace>
     <AssemblyName>AuxbarClient</AssemblyName>
 
+    <!-- Version is read from changelog.json at build time -->
+    <Version>$(AppVersion)</Version>
+    <AssemblyVersion>$(AppVersion)</AssemblyVersion>
+    <FileVersion>$(AppVersion)</FileVersion>
+
     <!-- Performance optimizations for faster startup -->
     <PublishReadyToRun>true</PublishReadyToRun>
     <TieredCompilation>true</TieredCompilation>
@@ -22,9 +27,31 @@
     <ApplicationIcon>Resources\app.ico</ApplicationIcon>
   </PropertyGroup>
 
+  <!-- Read version from version.json at build time -->
+  <Target Name="ReadVersionFromFile" BeforeTargets="BeforeBuild">
+    <PropertyGroup>
+      <VersionFilePath>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/../version.json'))</VersionFilePath>
+    </PropertyGroup>
+    <ReadLinesFromFile File="$(VersionFilePath)" Condition="Exists('$(VersionFilePath)')">
+      <Output TaskParameter="Lines" ItemName="VersionLines" />
+    </ReadLinesFromFile>
+    <PropertyGroup Condition="Exists('$(VersionFilePath)')">
+      <VersionContent>@(VersionLines)</VersionContent>
+      <!-- Extract version using regex - matches "version": "X.Y.Z" -->
+      <ExtractedVersion>$([System.Text.RegularExpressions.Regex]::Match($(VersionContent), '"version"\s*:\s*"([^"]+)"').Groups[1].Value)</ExtractedVersion>
+      <AppVersion Condition="'$(ExtractedVersion)' != ''">$(ExtractedVersion)</AppVersion>
+      <AppVersion Condition="'$(AppVersion)' == ''">1.0.0</AppVersion>
+    </PropertyGroup>
+    <PropertyGroup Condition="!Exists('$(VersionFilePath)')">
+      <AppVersion>1.0.0</AppVersion>
+    </PropertyGroup>
+    <Message Importance="High" Text="Building Auxbar Client version $(AppVersion)" />
+  </Target>
+
   <ItemGroup>
     <PackageReference Include="Websocket.Client" Version="5.1.1" />
     <PackageReference Include="System.Text.Json" Version="9.0.1" />
+    <PackageReference Include="DiscordRichPresence" Version="1.2.1.24" />
   </ItemGroup>
 
   <ItemGroup>

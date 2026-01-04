@@ -12,10 +12,12 @@ public partial class MainForm : Form
     private readonly ApiService _apiService;
     private readonly WebSocketService _webSocketService;
     private readonly MediaSessionService _mediaSessionService;
+    private readonly DiscordRpcService _discordRpcService;
 
     private NotifyIcon _notifyIcon = null!;
     private Label _statusLabel = null!;
     private Label _trackLabel = null!;
+    private Label _discordStatusLabel = null!;
     private TextBox _emailBox = null!;
     private TextBox _passwordBox = null!;
     private Button _loginButton = null!;
@@ -23,8 +25,10 @@ public partial class MainForm : Form
     private Panel _loginPanel = null!;
     private Panel _connectedPanel = null!;
     private Panel _statusIndicator = null!;
+    private Panel _discordIndicator = null!;
     private PictureBox _logoPictureBox = null!;
     private PictureBox _logoConnectedPictureBox = null!;
+    private CheckBox _discordToggle = null!;
 
     // Custom font
     private static PrivateFontCollection? _fontCollection;
@@ -46,11 +50,16 @@ public partial class MainForm : Form
         _apiService = new ApiService();
         _webSocketService = new WebSocketService(_apiService);
         _mediaSessionService = new MediaSessionService();
+        _discordRpcService = new DiscordRpcService();
 
         LoadEmbeddedFont();
         InitializeComponent();
         SetupTrayIcon();
         SetupEvents();
+
+        // Load Discord settings
+        var config = ConfigService.Load();
+        _discordRpcService.IsEnabled = config.Discord.Enabled;
     }
 
     private static void LoadEmbeddedFont()
@@ -142,7 +151,9 @@ public partial class MainForm : Form
         _loginButton = CreatePixelButton("SIGN IN", new Point(30, 285), new Size(370, 45), PixelAccent);
         _loginButton.Click += LoginButton_Click;
 
-        var versionLabel = CreatePixelLabel("v1.0.0", new Point(185, 350), GetPixelFont(5), PixelTextDim);
+        var version = Assembly.GetExecutingAssembly().GetName().Version;
+        var versionText = version != null ? $"v{version.Major}.{version.Minor}.{version.Build}" : "v1.0.0";
+        var versionLabel = CreatePixelLabel(versionText, new Point(185, 350), GetPixelFont(5), PixelTextDim);
 
         _loginPanel.Controls.AddRange(new Control[]
         {
@@ -162,21 +173,31 @@ public partial class MainForm : Form
         // Logo for connected panel
         _logoConnectedPictureBox = CreateLogoPictureBox(new Point(85, 15), new Size(260, 55));
 
-        // Status indicator (animated dot)
+        // Server status indicator (animated dot)
         _statusIndicator = new Panel
         {
-            Location = new Point(30, 85),
-            Size = new Size(12, 12),
+            Location = new Point(30, 80),
+            Size = new Size(10, 10),
             BackColor = PixelPrimary
         };
 
-        _statusLabel = CreatePixelLabel("LISTENING...", new Point(50, 83), GetPixelFont(7), PixelTextDim);
+        _statusLabel = CreatePixelLabel("SERVER: CONNECTING...", new Point(48, 78), GetPixelFont(6), PixelTextDim);
+
+        // Discord status indicator
+        _discordIndicator = new Panel
+        {
+            Location = new Point(240, 80),
+            Size = new Size(10, 10),
+            BackColor = PixelTextDim
+        };
+
+        _discordStatusLabel = CreatePixelLabel("DISCORD: OFF", new Point(258, 78), GetPixelFont(6), PixelTextDim);
 
         // Track info panel with pixel border
         var trackPanel = new Panel
         {
-            Location = new Point(30, 115),
-            Size = new Size(370, 130),
+            Location = new Point(30, 105),
+            Size = new Size(370, 110),
             BackColor = PixelBgMid
         };
         trackPanel.Paint += (s, e) =>
@@ -193,29 +214,44 @@ public partial class MainForm : Form
             Text = "NO MUSIC PLAYING",
             Font = GetPixelFont(8),
             ForeColor = PixelText,
-            Location = new Point(15, 20),
-            Size = new Size(340, 95),
+            Location = new Point(15, 15),
+            Size = new Size(340, 80),
             AutoEllipsis = true,
             BackColor = Color.Transparent
         };
 
         trackPanel.Controls.Add(_trackLabel);
 
+        // Discord toggle checkbox
+        _discordToggle = new CheckBox
+        {
+            Text = "DISCORD RICH PRESENCE",
+            Font = GetPixelFont(6),
+            ForeColor = PixelText,
+            BackColor = Color.Transparent,
+            Location = new Point(30, 225),
+            Size = new Size(250, 20),
+            Checked = ConfigService.Load().Discord.Enabled,
+            FlatStyle = FlatStyle.Flat
+        };
+        _discordToggle.CheckedChanged += DiscordToggle_CheckedChanged;
+
         // Buttons with pixel art style
-        _logoutButton = CreatePixelButton("SIGN OUT", new Point(30, 270), new Size(110, 40), PixelBgLight);
+        _logoutButton = CreatePixelButton("SIGN OUT", new Point(30, 260), new Size(110, 38), PixelBgLight);
         _logoutButton.Click += LogoutButton_Click;
 
-        var minimizeButton = CreatePixelButton("MINIMIZE", new Point(150, 270), new Size(110, 40), PixelBgLight);
+        var minimizeButton = CreatePixelButton("MINIMIZE", new Point(150, 260), new Size(110, 38), PixelBgLight);
         minimizeButton.Click += (s, e) => Hide();
 
-        var settingsButton = CreatePixelButton("SETTINGS", new Point(270, 270), new Size(110, 40), PixelBgLight);
+        var settingsButton = CreatePixelButton("SETTINGS", new Point(270, 260), new Size(110, 38), PixelBgLight);
         settingsButton.Click += (s, e) => MessageBox.Show("Settings coming soon!", "Auxbar", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
-        var footerLabel = CreatePixelLabel("KEEP OPEN WHILE STREAMING", new Point(95, 330), GetPixelFont(5), PixelTextDim);
+        var footerLabel = CreatePixelLabel("KEEP OPEN WHILE STREAMING", new Point(95, 320), GetPixelFont(5), PixelTextDim);
 
         _connectedPanel.Controls.AddRange(new Control[]
         {
-            _logoConnectedPictureBox, _statusIndicator, _statusLabel, trackPanel,
+            _logoConnectedPictureBox, _statusIndicator, _statusLabel,
+            _discordIndicator, _discordStatusLabel, trackPanel, _discordToggle,
             _logoutButton, minimizeButton, settingsButton, footerLabel
         });
 
@@ -451,7 +487,7 @@ public partial class MainForm : Form
         {
             Invoke(() =>
             {
-                _statusLabel.Text = "CONNECTED TO SERVER";
+                _statusLabel.Text = "SERVER: CONNECTED";
                 _statusLabel.ForeColor = PixelAccent;
                 _statusIndicator.BackColor = PixelAccent;
             });
@@ -461,9 +497,41 @@ public partial class MainForm : Form
         {
             Invoke(() =>
             {
-                _statusLabel.Text = "RECONNECTING...";
+                _statusLabel.Text = "SERVER: RECONNECTING...";
                 _statusLabel.ForeColor = PixelTextDim;
                 _statusIndicator.BackColor = Color.FromArgb(255, 193, 7); // Yellow
+            });
+        };
+
+        // Discord RPC events
+        _discordRpcService.Connected += () =>
+        {
+            Invoke(() =>
+            {
+                _discordStatusLabel.Text = "DISCORD: ON";
+                _discordStatusLabel.ForeColor = PixelAccent;
+                _discordIndicator.BackColor = PixelAccent;
+            });
+        };
+
+        _discordRpcService.Disconnected += () =>
+        {
+            Invoke(() =>
+            {
+                _discordStatusLabel.Text = "DISCORD: OFF";
+                _discordStatusLabel.ForeColor = PixelTextDim;
+                _discordIndicator.BackColor = PixelTextDim;
+            });
+        };
+
+        _discordRpcService.Error += (error) =>
+        {
+            Console.WriteLine($"Discord RPC Error: {error}");
+            Invoke(() =>
+            {
+                _discordStatusLabel.Text = "DISCORD: ERROR";
+                _discordStatusLabel.ForeColor = PixelPrimary;
+                _discordIndicator.BackColor = PixelPrimary;
             });
         };
 
@@ -472,6 +540,13 @@ public partial class MainForm : Form
             if (track != null)
             {
                 _webSocketService.SendTrackUpdate(track);
+
+                // Update Discord Rich Presence
+                if (_discordRpcService.IsEnabled)
+                {
+                    _discordRpcService.UpdatePresence(track);
+                }
+
                 Invoke(() =>
                 {
                     var playState = track.Playing ? "▶" : "⏸";
@@ -482,6 +557,13 @@ public partial class MainForm : Form
             else
             {
                 _webSocketService.SendIdle();
+
+                // Set Discord to idle state
+                if (_discordRpcService.IsEnabled)
+                {
+                    _discordRpcService.SetIdlePresence();
+                }
+
                 Invoke(() =>
                 {
                     _trackLabel.Text = "NO MUSIC PLAYING";
@@ -569,11 +651,18 @@ public partial class MainForm : Form
 
         await _mediaSessionService.InitializeAsync();
         await _webSocketService.ConnectAsync();
+
+        // Initialize Discord RPC if enabled
+        if (_discordRpcService.IsEnabled)
+        {
+            _discordRpcService.Initialize();
+        }
     }
 
     private void LogoutButton_Click(object? sender, EventArgs e)
     {
         _webSocketService.Disconnect();
+        _discordRpcService.ClearPresence();
         _apiService.ClearTokens();
 
         _connectedPanel.Visible = false;
@@ -582,6 +671,29 @@ public partial class MainForm : Form
         _passwordBox.Text = "";
         _loginButton.Enabled = true;
         _loginButton.Text = "SIGN IN";
+    }
+
+    private void DiscordToggle_CheckedChanged(object? sender, EventArgs e)
+    {
+        var enabled = _discordToggle.Checked;
+        _discordRpcService.IsEnabled = enabled;
+
+        // Save to config
+        var config = ConfigService.Load();
+        config.Discord.Enabled = enabled;
+        ConfigService.Save();
+
+        if (enabled)
+        {
+            _discordRpcService.Initialize();
+        }
+        else
+        {
+            _discordRpcService.ClearPresence();
+            _discordStatusLabel.Text = "DISCORD: OFF";
+            _discordStatusLabel.ForeColor = PixelTextDim;
+            _discordIndicator.BackColor = PixelTextDim;
+        }
     }
 
     private void MainForm_FormClosing(object? sender, FormClosingEventArgs e)
@@ -594,6 +706,7 @@ public partial class MainForm : Form
         else
         {
             _notifyIcon.Dispose();
+            _discordRpcService.Dispose();
             _webSocketService.Dispose();
             _mediaSessionService.Dispose();
             _apiService.Dispose();
