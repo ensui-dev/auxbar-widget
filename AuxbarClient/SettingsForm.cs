@@ -32,6 +32,9 @@ public class SettingsForm : Form
     private PixelCheckBox _showProgressToggle = null!;
     private PixelCheckBox _showButtonToggle = null!;
 
+    // Flag to prevent saving during initial load
+    private bool _isLoading = true;
+
     public SettingsForm(DiscordRpcService discordRpcService, Action onSettingsChanged)
     {
         _discordRpcService = discordRpcService;
@@ -239,6 +242,8 @@ public class SettingsForm : Form
 
     private void LoadSettings()
     {
+        _isLoading = true;
+
         var config = ConfigService.Load();
         _discordEnabledToggle.Checked = config.Discord.Enabled;
         _showAlbumNameToggle.Checked = config.Discord.ShowAlbumName;
@@ -246,6 +251,8 @@ public class SettingsForm : Form
         _showButtonToggle.Checked = config.Discord.ShowButton;
 
         UpdateSubTogglesState();
+
+        _isLoading = false;
     }
 
     private void UpdateSubTogglesState()
@@ -264,12 +271,18 @@ public class SettingsForm : Form
     private void DiscordEnabledToggle_CheckedChanged(object? sender, EventArgs e)
     {
         UpdateSubTogglesState();
-        SaveAndApplySettings();
+        if (!_isLoading)
+        {
+            SaveAndApplySettings();
+        }
     }
 
     private void SettingChanged(object? sender, EventArgs e)
     {
-        SaveAndApplySettings();
+        if (!_isLoading)
+        {
+            SaveAndApplySettings();
+        }
     }
 
     private void SaveAndApplySettings()
