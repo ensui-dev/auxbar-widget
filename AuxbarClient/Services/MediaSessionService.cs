@@ -14,6 +14,9 @@ public class MediaSessionService : IDisposable
     private TrackInfo? _lastTrack;
     private string? _lastTrackId;
 
+    // Expose current track for initial sync
+    public TrackInfo? CurrentTrack => _lastTrack;
+
     public MediaSessionService()
     {
         _pollTimer = new System.Timers.Timer(1000); // Poll every second

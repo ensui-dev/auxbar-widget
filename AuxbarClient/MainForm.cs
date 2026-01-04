@@ -649,6 +649,28 @@ public partial class MainForm : Form
         if (_discordRpcService.IsEnabled)
         {
             _discordRpcService.Initialize();
+
+            // Sync current track to Discord after a short delay to ensure connection
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(2000); // Wait for Discord to connect
+                SyncCurrentTrackToDiscord();
+            });
+        }
+    }
+
+    private void SyncCurrentTrackToDiscord()
+    {
+        if (!_discordRpcService.IsEnabled) return;
+
+        var currentTrack = _mediaSessionService.CurrentTrack;
+        if (currentTrack != null)
+        {
+            _discordRpcService.UpdatePresence(currentTrack);
+        }
+        else
+        {
+            _discordRpcService.SetIdlePresence();
         }
     }
 
@@ -695,6 +717,12 @@ public partial class MainForm : Form
             _discordStatusLabel.Text = "DISCORD: OFF";
             _discordStatusLabel.ForeColor = PixelTextDim;
             _discordIndicator.BackColor = PixelTextDim;
+        }
+
+        // Sync current track to Discord when settings change
+        if (_discordRpcService.IsEnabled && _discordRpcService.IsConnected)
+        {
+            SyncCurrentTrackToDiscord();
         }
     }
 

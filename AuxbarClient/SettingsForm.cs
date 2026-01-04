@@ -84,7 +84,7 @@ public class SettingsForm : Form
     private void InitializeComponent()
     {
         Text = "Settings";
-        Size = new Size(400, 380);
+        Size = new Size(420, 440);
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;
@@ -106,57 +106,57 @@ public class SettingsForm : Form
 
         Paint += SettingsForm_Paint;
 
-        // Title
-        var titleLabel = CreatePixelLabel("SETTINGS", new Point(140, 20), GetPixelFont(10), PixelText);
+        // Title - more top padding
+        var titleLabel = CreatePixelLabel("SETTINGS", new Point(150, 30), GetPixelFont(10), PixelText);
         Controls.Add(titleLabel);
 
-        // Discord section header
-        var discordHeader = CreatePixelLabel("DISCORD RICH PRESENCE", new Point(20, 60), GetPixelFont(7), PixelAccent);
+        // Discord section header - more spacing
+        var discordHeader = CreatePixelLabel("DISCORD RICH PRESENCE", new Point(30, 75), GetPixelFont(7), PixelAccent);
         Controls.Add(discordHeader);
 
         // Separator line
         var separator = new Panel
         {
-            Location = new Point(20, 85),
+            Location = new Point(30, 105),
             Size = new Size(340, 2),
             BackColor = PixelBorder
         };
         Controls.Add(separator);
 
-        // Discord enabled toggle
-        _discordEnabledToggle = CreateToggle("Enable Discord Presence", new Point(20, 100));
+        // Discord enabled toggle - increased vertical spacing
+        _discordEnabledToggle = CreateToggle("Enable Discord Presence", new Point(30, 125));
         _discordEnabledToggle.CheckedChanged += DiscordEnabledToggle_CheckedChanged;
         Controls.Add(_discordEnabledToggle);
 
-        var enabledDesc = CreatePixelLabel("Show your music on Discord profile", new Point(50, 125), GetPixelFont(5), PixelTextDim);
+        var enabledDesc = CreatePixelLabel("Show your music on Discord profile", new Point(60, 155), GetPixelFont(5), PixelTextDim);
         Controls.Add(enabledDesc);
 
         // Show album name toggle
-        _showAlbumNameToggle = CreateToggle("Show Album Name", new Point(20, 155));
+        _showAlbumNameToggle = CreateToggle("Show Album Name", new Point(30, 190));
         _showAlbumNameToggle.CheckedChanged += SettingChanged;
         Controls.Add(_showAlbumNameToggle);
 
-        var albumDesc = CreatePixelLabel("Display album name as hover text", new Point(50, 180), GetPixelFont(5), PixelTextDim);
+        var albumDesc = CreatePixelLabel("Display album name as hover text", new Point(60, 220), GetPixelFont(5), PixelTextDim);
         Controls.Add(albumDesc);
 
         // Show progress toggle
-        _showProgressToggle = CreateToggle("Show Playback Progress", new Point(20, 210));
+        _showProgressToggle = CreateToggle("Show Playback Progress", new Point(30, 255));
         _showProgressToggle.CheckedChanged += SettingChanged;
         Controls.Add(_showProgressToggle);
 
-        var progressDesc = CreatePixelLabel("Display elapsed/remaining time", new Point(50, 235), GetPixelFont(5), PixelTextDim);
+        var progressDesc = CreatePixelLabel("Display elapsed/remaining time", new Point(60, 285), GetPixelFont(5), PixelTextDim);
         Controls.Add(progressDesc);
 
         // Show button toggle
-        _showButtonToggle = CreateToggle("Show 'Get Auxbar' Button", new Point(20, 265));
+        _showButtonToggle = CreateToggle("Show 'Get Auxbar' Button", new Point(30, 320));
         _showButtonToggle.CheckedChanged += SettingChanged;
         Controls.Add(_showButtonToggle);
 
-        var buttonDesc = CreatePixelLabel("Add link button to presence", new Point(50, 290), GetPixelFont(5), PixelTextDim);
+        var buttonDesc = CreatePixelLabel("Add link button to presence", new Point(60, 350), GetPixelFont(5), PixelTextDim);
         Controls.Add(buttonDesc);
 
-        // Close button
-        var closeButton = CreatePixelButton("CLOSE", new Point(130, 320), new Size(120, 35), PixelBgLight);
+        // Close button - moved down
+        var closeButton = CreatePixelButton("CLOSE", new Point(140, 385), new Size(120, 35), PixelBgLight);
         closeButton.Click += (s, e) => Close();
         Controls.Add(closeButton);
     }
