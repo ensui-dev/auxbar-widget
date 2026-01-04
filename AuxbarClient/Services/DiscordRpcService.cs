@@ -157,9 +157,10 @@ public class DiscordRpcService : IDisposable
             string largeImageKey = "auxbar_logo"; // Default fallback to uploaded asset
             if (!string.IsNullOrEmpty(WidgetSlug) && !string.IsNullOrEmpty(track.AlbumArt))
             {
-                // Cache bust with track identifier to force image refresh on track change
+                // Use path-based cache busting instead of query params
+                // Discord may reject URLs with query parameters, but path segments work
                 var trackHash = Math.Abs($"{track.Title}-{track.Artist}".GetHashCode());
-                largeImageKey = $"{BaseUrl}/api/widget/album-art/{WidgetSlug}?t={trackHash}";
+                largeImageKey = $"{BaseUrl}/api/widget/album-art/{WidgetSlug}/{trackHash}";
                 Console.WriteLine($"Discord RPC using album art URL: {largeImageKey}");
             }
             else if (string.IsNullOrEmpty(WidgetSlug))
