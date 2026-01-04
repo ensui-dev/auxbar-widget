@@ -574,6 +574,14 @@ public partial class MainForm : Form
         // Try to load saved tokens
         _apiService.LoadTokens();
 
+        // Load widget slug for Discord RPC
+        var config = ConfigService.Load();
+        if (!string.IsNullOrEmpty(config.WidgetSlug))
+        {
+            _discordRpcService.WidgetSlug = config.WidgetSlug;
+            Console.WriteLine($"Widget slug loaded for Discord RPC: {config.WidgetSlug}");
+        }
+
         if (_apiService.IsAuthenticated)
         {
             // Verify token is still valid and start auto-refresh
@@ -634,6 +642,14 @@ public partial class MainForm : Form
             return;
         }
 
+        // Save and set widget slug for Discord RPC album art
+        if (result.User?.WidgetSlug != null)
+        {
+            ConfigService.UpdateWidgetSlug(result.User.WidgetSlug);
+            _discordRpcService.WidgetSlug = result.User.WidgetSlug;
+            Console.WriteLine($"Widget slug saved for Discord RPC: {result.User.WidgetSlug}");
+        }
+
         await ConnectAndStart();
     }
 
@@ -678,6 +694,7 @@ public partial class MainForm : Form
     {
         _webSocketService.Disconnect();
         _discordRpcService.ClearPresence();
+        _discordRpcService.WidgetSlug = null; // Clear widget slug for next login
         _apiService.ClearTokens();
 
         _connectedPanel.Visible = false;

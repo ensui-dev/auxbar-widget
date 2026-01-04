@@ -84,7 +84,10 @@ public class SettingsForm : Form
     private void InitializeComponent()
     {
         Text = "Settings";
-        Size = new Size(420, 440);
+        // Use AutoScaleMode and proper sizing for DPI awareness
+        AutoScaleMode = AutoScaleMode.Dpi;
+        // Height: Title bar (~30) + content (~410) + padding = 480
+        ClientSize = new Size(400, 450);
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;
@@ -155,8 +158,8 @@ public class SettingsForm : Form
         var buttonDesc = CreatePixelLabel("Add link button to presence", new Point(60, 350), GetPixelFont(5), PixelTextDim);
         Controls.Add(buttonDesc);
 
-        // Close button - moved down
-        var closeButton = CreatePixelButton("CLOSE", new Point(140, 385), new Size(120, 35), PixelBgLight);
+        // Close button - positioned with proper padding from bottom
+        var closeButton = CreatePixelButton("CLOSE", new Point(140, 400), new Size(120, 35), PixelBgLight);
         closeButton.Click += (s, e) => Close();
         Controls.Add(closeButton);
     }

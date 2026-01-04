@@ -1,19 +1,35 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace AuxbarClient.Services;
 
 public class DiscordSettings
 {
+    [JsonPropertyName("enabled")]
     public bool Enabled { get; set; } = true;
+
+    [JsonPropertyName("showAlbumName")]
     public bool ShowAlbumName { get; set; } = true;
+
+    [JsonPropertyName("showPlaybackProgress")]
     public bool ShowPlaybackProgress { get; set; } = true;
+
+    [JsonPropertyName("showButton")]
     public bool ShowButton { get; set; } = true;
 }
 
 public class AppConfig
 {
+    [JsonPropertyName("accessToken")]
     public string? AccessToken { get; set; }
+
+    [JsonPropertyName("refreshToken")]
     public string? RefreshToken { get; set; }
+
+    [JsonPropertyName("widgetSlug")]
+    public string? WidgetSlug { get; set; }
+
+    [JsonPropertyName("discord")]
     public DiscordSettings Discord { get; set; } = new();
 }
 
@@ -116,6 +132,14 @@ public static class ConfigService
         var config = Load();
         config.AccessToken = null;
         config.RefreshToken = null;
+        config.WidgetSlug = null;
+        Save();
+    }
+
+    public static void UpdateWidgetSlug(string? widgetSlug)
+    {
+        var config = Load();
+        config.WidgetSlug = widgetSlug;
         Save();
     }
 

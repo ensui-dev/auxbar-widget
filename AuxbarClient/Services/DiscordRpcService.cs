@@ -31,6 +31,10 @@ public class DiscordRpcService : IDisposable
     public bool ShowPlaybackProgress { get; set; } = true;
     public bool ShowButton { get; set; } = true;
 
+    // Widget slug for album art URL (set after login)
+    public string? WidgetSlug { get; set; }
+    private const string BaseUrl = "https://auxbar.me";
+
     public bool IsEnabled
     {
         get => _isEnabled;
@@ -113,26 +117,55 @@ public class DiscordRpcService : IDisposable
     public void UpdatePresence(TrackInfo track)
     {
         if (!_isEnabled || _client == null || !_client.IsInitialized)
+        {
+            Console.WriteLine($"Discord RPC UpdatePresence skipped: enabled={_isEnabled}, client={_client != null}, initialized={_client?.IsInitialized}");
             return;
+        }
 
         _currentTrack = track;
 
         try
         {
-            // Use album art URL if available, otherwise fall back to auxbar_logo asset
-            var largeImageKey = !string.IsNullOrEmpty(track.AlbumArt) ? track.AlbumArt : "auxbar_logo";
+            // Prepare display strings with fallbacks
+            var title = TruncateString(track.Title, 128, "Unknown Track");
+            var artist = track.Artist;
+            var artistDisplay = string.IsNullOrWhiteSpace(artist) || artist.Length < 2
+                ? "Unknown Artist"
+                : $"by {artist}";
+            artistDisplay = TruncateString(artistDisplay, 128, "Unknown Artist");
+
+            Console.WriteLine($"Discord RPC UpdatePresence: Title='{title}', Artist='{artistDisplay}', Playing={track.Playing}");
+
+            // Use album art URL from server if we have a widget slug
+            // The server serves the album art that was sent by this client
+            var largeImageKey = "auxbar_logo";
+            if (!string.IsNullOrEmpty(WidgetSlug) && !string.IsNullOrEmpty(track.AlbumArt))
+            {
+                // Discord RPC supports external HTTPS URLs for images
+                // Use the server endpoint that serves the album art we sent
+                largeImageKey = $"{BaseUrl}/api/widget/album-art/{WidgetSlug}";
+                Console.WriteLine($"Discord RPC using album art URL: {largeImageKey}");
+            }
+            else if (string.IsNullOrEmpty(WidgetSlug))
+            {
+                Console.WriteLine("Discord RPC: No widget slug set, using default asset");
+            }
+            else
+            {
+                Console.WriteLine("Discord RPC: No album art available, using default asset");
+            }
 
             // Build large image text based on settings
             string largeImageText = "Auxbar";
             if (ShowAlbumName && !string.IsNullOrEmpty(track.Album))
             {
-                largeImageText = TruncateString(track.Album, 128);
+                largeImageText = TruncateString(track.Album, 128, "Auxbar");
             }
 
             var presence = new RichPresence
             {
-                Details = TruncateString(track.Title, 128),
-                State = TruncateString($"by {track.Artist}", 128),
+                Details = title,
+                State = artistDisplay,
                 Assets = new Assets
                 {
                     LargeImageKey = largeImageKey,
@@ -230,10 +263,11 @@ public class DiscordRpcService : IDisposable
         }
     }
 
-    private static string TruncateString(string? str, int maxLength)
+    private static string TruncateString(string? str, int maxLength, string fallback = "Unknown")
     {
-        if (string.IsNullOrEmpty(str))
-            return string.Empty;
+        // Discord RPC requires at least 2 characters for Details/State
+        if (string.IsNullOrWhiteSpace(str) || str.Length < 2)
+            return fallback;
 
         if (str.Length <= maxLength)
             return str;
