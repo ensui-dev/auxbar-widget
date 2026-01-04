@@ -26,18 +26,32 @@ public class DiscordRpcService : IDisposable
     public event Action? Disconnected;
     public event Action<string>? Error;
 
+    // Settings properties
+    public bool ShowAlbumName { get; set; } = true;
+    public bool ShowPlaybackProgress { get; set; } = true;
+    public bool ShowButton { get; set; } = true;
+
     public bool IsEnabled
     {
         get => _isEnabled;
         set
         {
+            if (_isEnabled == value) return;
+
             _isEnabled = value;
+            Console.WriteLine($"Discord RPC IsEnabled changed to: {_isEnabled}");
+
             if (!_isEnabled)
             {
                 ClearPresence();
             }
             else if (_currentTrack != null)
             {
+                // Re-initialize if needed and update presence
+                if (!_isInitialized)
+                {
+                    Initialize();
+                }
                 UpdatePresence(_currentTrack);
             }
         }
@@ -108,6 +122,13 @@ public class DiscordRpcService : IDisposable
             // Use album art URL if available, otherwise fall back to auxbar_logo asset
             var largeImageKey = !string.IsNullOrEmpty(track.AlbumArt) ? track.AlbumArt : "auxbar_logo";
 
+            // Build large image text based on settings
+            string largeImageText = "Auxbar";
+            if (ShowAlbumName && !string.IsNullOrEmpty(track.Album))
+            {
+                largeImageText = TruncateString(track.Album, 128);
+            }
+
             var presence = new RichPresence
             {
                 Details = TruncateString(track.Title, 128),
@@ -115,14 +136,14 @@ public class DiscordRpcService : IDisposable
                 Assets = new Assets
                 {
                     LargeImageKey = largeImageKey,
-                    LargeImageText = string.IsNullOrEmpty(track.Album) ? "Auxbar" : TruncateString(track.Album, 128),
+                    LargeImageText = largeImageText,
                     SmallImageKey = track.Playing ? "playing" : "paused",
                     SmallImageText = track.Playing ? "Playing" : "Paused"
                 }
             };
 
             // Add timestamps for elapsed time if playing and we have progress info
-            if (track.Playing && track.Progress.HasValue && track.Duration.HasValue && track.Duration.Value > 0)
+            if (ShowPlaybackProgress && track.Playing && track.Progress.HasValue && track.Duration.HasValue && track.Duration.Value > 0)
             {
                 var now = DateTime.UtcNow;
                 var elapsed = TimeSpan.FromMilliseconds(track.Progress.Value);
@@ -136,15 +157,18 @@ public class DiscordRpcService : IDisposable
                 };
             }
 
-            // Add button to open Auxbar website
-            presence.Buttons = new DiscordRPC.Button[]
+            // Add button to open Auxbar website if enabled
+            if (ShowButton)
             {
-                new DiscordRPC.Button
+                presence.Buttons = new DiscordRPC.Button[]
                 {
-                    Label = "Get Auxbar",
-                    Url = "https://auxbar.me"
-                }
-            };
+                    new DiscordRPC.Button
+                    {
+                        Label = "Get Auxbar",
+                        Url = "https://auxbar.me"
+                    }
+                };
+            }
 
             _client.SetPresence(presence);
         }

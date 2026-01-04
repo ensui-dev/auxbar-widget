@@ -13,11 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Playing/paused status icons for Discord
 - Playback progress timestamps in Discord status
 - "Get Auxbar" button on Discord presence
-- Discord toggle in connected panel
+- Settings panel with Discord configuration options
+  - Toggle Discord Rich Presence on/off
+  - Toggle album name display
+  - Toggle playback progress timestamps
+  - Toggle "Get Auxbar" button
 
 ### Changed
 - Version now read from version.json at build time
 - Improved Discord connection status indicators
+- Settings button now opens dedicated settings panel
 
 ## [1.0.0] - 2025-01-03
 

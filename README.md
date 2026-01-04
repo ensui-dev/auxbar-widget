@@ -183,15 +183,6 @@ This application collects and transmits the following data to the Auxbar backend
 
 For the backend privacy policy, see [auxbar.me/privacy](https://auxbar.me/privacy).
 
-## Code Signing Policy
-
-This project's releases are signed using a certificate provided by [SignPath Foundation](https://signpath.org).
-
-- Only official releases from this repository are signed
-- All commits are made by verified maintainers
-- Builds are reproducible from the public source code
-- The signing process follows SignPath Foundation's security requirements
-
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
@@ -217,7 +208,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - [Auxbar Website](https://auxbar.me) - Create your account and customize your widget
 - Widget URL: `https://auxbar.me/widget/{your-slug}`
-
----
-
-Built with love for the streaming community

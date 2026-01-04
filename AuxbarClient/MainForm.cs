@@ -28,7 +28,6 @@ public partial class MainForm : Form
     private Panel _discordIndicator = null!;
     private PictureBox _logoPictureBox = null!;
     private PictureBox _logoConnectedPictureBox = null!;
-    private CheckBox _discordToggle = null!;
 
     // Custom font
     private static PrivateFontCollection? _fontCollection;
@@ -57,9 +56,17 @@ public partial class MainForm : Form
         SetupTrayIcon();
         SetupEvents();
 
-        // Load Discord settings
+        // Load Discord settings from config
+        LoadDiscordSettings();
+    }
+
+    private void LoadDiscordSettings()
+    {
         var config = ConfigService.Load();
         _discordRpcService.IsEnabled = config.Discord.Enabled;
+        _discordRpcService.ShowAlbumName = config.Discord.ShowAlbumName;
+        _discordRpcService.ShowPlaybackProgress = config.Discord.ShowPlaybackProgress;
+        _discordRpcService.ShowButton = config.Discord.ShowButton;
     }
 
     private static void LoadEmbeddedFont()
@@ -105,7 +112,7 @@ public partial class MainForm : Form
     private void InitializeComponent()
     {
         Text = "Auxbar";
-        Size = new Size(450, 420);
+        Size = new Size(450, 380);
         FormBorderStyle = FormBorderStyle.FixedSingle;
 
         // Set window icon
@@ -222,36 +229,22 @@ public partial class MainForm : Form
 
         trackPanel.Controls.Add(_trackLabel);
 
-        // Discord toggle checkbox
-        _discordToggle = new CheckBox
-        {
-            Text = "DISCORD RICH PRESENCE",
-            Font = GetPixelFont(6),
-            ForeColor = PixelText,
-            BackColor = Color.Transparent,
-            Location = new Point(30, 225),
-            Size = new Size(250, 20),
-            Checked = ConfigService.Load().Discord.Enabled,
-            FlatStyle = FlatStyle.Flat
-        };
-        _discordToggle.CheckedChanged += DiscordToggle_CheckedChanged;
-
         // Buttons with pixel art style
-        _logoutButton = CreatePixelButton("SIGN OUT", new Point(30, 260), new Size(110, 38), PixelBgLight);
+        _logoutButton = CreatePixelButton("SIGN OUT", new Point(30, 230), new Size(110, 38), PixelBgLight);
         _logoutButton.Click += LogoutButton_Click;
 
-        var minimizeButton = CreatePixelButton("MINIMIZE", new Point(150, 260), new Size(110, 38), PixelBgLight);
+        var minimizeButton = CreatePixelButton("MINIMIZE", new Point(150, 230), new Size(110, 38), PixelBgLight);
         minimizeButton.Click += (s, e) => Hide();
 
-        var settingsButton = CreatePixelButton("SETTINGS", new Point(270, 260), new Size(110, 38), PixelBgLight);
-        settingsButton.Click += (s, e) => MessageBox.Show("Settings coming soon!", "Auxbar", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        var settingsButton = CreatePixelButton("SETTINGS", new Point(270, 230), new Size(110, 38), PixelBgLight);
+        settingsButton.Click += SettingsButton_Click;
 
-        var footerLabel = CreatePixelLabel("KEEP OPEN WHILE STREAMING", new Point(95, 320), GetPixelFont(5), PixelTextDim);
+        var footerLabel = CreatePixelLabel("KEEP OPEN WHILE STREAMING", new Point(95, 290), GetPixelFont(5), PixelTextDim);
 
         _connectedPanel.Controls.AddRange(new Control[]
         {
             _logoConnectedPictureBox, _statusIndicator, _statusLabel,
-            _discordIndicator, _discordStatusLabel, trackPanel, _discordToggle,
+            _discordIndicator, _discordStatusLabel, trackPanel,
             _logoutButton, minimizeButton, settingsButton, footerLabel
         });
 
@@ -673,23 +666,32 @@ public partial class MainForm : Form
         _loginButton.Text = "SIGN IN";
     }
 
-    private void DiscordToggle_CheckedChanged(object? sender, EventArgs e)
+    private void SettingsButton_Click(object? sender, EventArgs e)
     {
-        var enabled = _discordToggle.Checked;
-        _discordRpcService.IsEnabled = enabled;
+        using var settingsForm = new SettingsForm(_discordRpcService, UpdateDiscordStatusDisplay);
+        settingsForm.ShowDialog(this);
+    }
 
-        // Save to config
-        var config = ConfigService.Load();
-        config.Discord.Enabled = enabled;
-        ConfigService.Save();
-
-        if (enabled)
+    private void UpdateDiscordStatusDisplay()
+    {
+        // Update the Discord status indicator based on current state
+        if (_discordRpcService.IsEnabled)
         {
-            _discordRpcService.Initialize();
+            if (_discordRpcService.IsConnected)
+            {
+                _discordStatusLabel.Text = "DISCORD: ON";
+                _discordStatusLabel.ForeColor = PixelAccent;
+                _discordIndicator.BackColor = PixelAccent;
+            }
+            else
+            {
+                _discordStatusLabel.Text = "DISCORD: CONNECTING";
+                _discordStatusLabel.ForeColor = PixelTextDim;
+                _discordIndicator.BackColor = Color.FromArgb(255, 193, 7); // Yellow
+            }
         }
         else
         {
-            _discordRpcService.ClearPresence();
             _discordStatusLabel.Text = "DISCORD: OFF";
             _discordStatusLabel.ForeColor = PixelTextDim;
             _discordIndicator.BackColor = PixelTextDim;
