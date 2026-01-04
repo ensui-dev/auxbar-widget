@@ -152,23 +152,15 @@ public class DiscordRpcService : IDisposable
                 largeImageText = TruncateString(track.Album, 128, "Auxbar");
             }
 
-            // Build assets with album art URL or fallback to default logo
-            var assets = new Assets
-            {
-                LargeImageKey = "auxbar_logo", // Default fallback
-                LargeImageText = largeImageText,
-                SmallImageKey = track.Playing ? "playing" : "paused",
-                SmallImageText = track.Playing ? "Playing" : "Paused"
-            };
-
-            // Use external album art URL if available
+            // Determine large image: use external album art URL if available, else fallback to asset
+            // LargeImageKey supports direct URLs - Discord will handle proxying them
+            string largeImageKey = "auxbar_logo"; // Default fallback to uploaded asset
             if (!string.IsNullOrEmpty(WidgetSlug) && !string.IsNullOrEmpty(track.AlbumArt))
             {
                 // Cache bust with track identifier to force image refresh on track change
                 var trackHash = Math.Abs($"{track.Title}-{track.Artist}".GetHashCode());
-                var albumArtUrl = $"{BaseUrl}/api/widget/album-art/{WidgetSlug}?t={trackHash}";
-                assets.LargeImageUrl = albumArtUrl;
-                Console.WriteLine($"Discord RPC using album art URL: {albumArtUrl}");
+                largeImageKey = $"{BaseUrl}/api/widget/album-art/{WidgetSlug}?t={trackHash}";
+                Console.WriteLine($"Discord RPC using album art URL: {largeImageKey}");
             }
             else if (string.IsNullOrEmpty(WidgetSlug))
             {
@@ -178,6 +170,15 @@ public class DiscordRpcService : IDisposable
             {
                 Console.WriteLine("Discord RPC: No album art available, using default asset");
             }
+
+            // Build assets - LargeImageKey accepts both asset names and external URLs
+            var assets = new Assets
+            {
+                LargeImageKey = largeImageKey,
+                LargeImageText = largeImageText,
+                SmallImageKey = track.Playing ? "playing" : "paused",
+                SmallImageText = track.Playing ? "Playing" : "Paused"
+            };
 
             var presence = new RichPresence
             {
