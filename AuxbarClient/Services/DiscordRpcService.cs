@@ -145,18 +145,30 @@ public class DiscordRpcService : IDisposable
 
             Console.WriteLine($"Discord RPC UpdatePresence: Title='{title}', Artist='{artistDisplay}', Playing={track.Playing}");
 
-            // Use album art URL from server if we have a widget slug
-            // The server serves the album art that was sent by this client
-            // Add cache-busting parameter using track title hash to force Discord to reload on track change
-            var largeImageKey = "auxbar_logo";
+            // Build large image text based on settings
+            string largeImageText = "Auxbar";
+            if (ShowAlbumName && !string.IsNullOrEmpty(track.Album))
+            {
+                largeImageText = TruncateString(track.Album, 128, "Auxbar");
+            }
+
+            // Build assets with album art URL or fallback to default logo
+            var assets = new Assets
+            {
+                LargeImageKey = "auxbar_logo", // Default fallback
+                LargeImageText = largeImageText,
+                SmallImageKey = track.Playing ? "playing" : "paused",
+                SmallImageText = track.Playing ? "Playing" : "Paused"
+            };
+
+            // Use external album art URL if available
             if (!string.IsNullOrEmpty(WidgetSlug) && !string.IsNullOrEmpty(track.AlbumArt))
             {
-                // Discord RPC supports external HTTPS URLs for images
-                // Use the server endpoint that serves the album art we sent
                 // Cache bust with track identifier to force image refresh on track change
                 var trackHash = Math.Abs($"{track.Title}-{track.Artist}".GetHashCode());
-                largeImageKey = $"{BaseUrl}/api/widget/album-art/{WidgetSlug}?t={trackHash}";
-                Console.WriteLine($"Discord RPC using album art URL: {largeImageKey}");
+                var albumArtUrl = $"{BaseUrl}/api/widget/album-art/{WidgetSlug}?t={trackHash}";
+                assets.LargeImageUrl = albumArtUrl;
+                Console.WriteLine($"Discord RPC using album art URL: {albumArtUrl}");
             }
             else if (string.IsNullOrEmpty(WidgetSlug))
             {
@@ -167,24 +179,11 @@ public class DiscordRpcService : IDisposable
                 Console.WriteLine("Discord RPC: No album art available, using default asset");
             }
 
-            // Build large image text based on settings
-            string largeImageText = "Auxbar";
-            if (ShowAlbumName && !string.IsNullOrEmpty(track.Album))
-            {
-                largeImageText = TruncateString(track.Album, 128, "Auxbar");
-            }
-
             var presence = new RichPresence
             {
                 Details = title,
                 State = artistDisplay,
-                Assets = new Assets
-                {
-                    LargeImageKey = largeImageKey,
-                    LargeImageText = largeImageText,
-                    SmallImageKey = track.Playing ? "playing" : "paused",
-                    SmallImageText = track.Playing ? "Playing" : "Paused"
-                }
+                Assets = assets
             };
 
             // Note: We're showing progress in the State field instead of using Discord timestamps
