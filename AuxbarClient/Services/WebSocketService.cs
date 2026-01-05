@@ -13,6 +13,7 @@ public class WebSocketService : IDisposable
     public event Action? Connected;
     public event Action? Disconnected;
     public event Action<string>? Error;
+    public event Action<string>? WidgetSlugReceived;
 
     public bool IsConnected => _isConnected;
 
@@ -61,6 +62,29 @@ public class WebSocketService : IDisposable
         _client.MessageReceived.Subscribe(msg =>
         {
             Console.WriteLine($"Message received: {msg}");
+
+            // Parse the message to extract widget slug from "connected" message
+            try
+            {
+                using var doc = JsonDocument.Parse(msg.Text ?? "{}");
+                var root = doc.RootElement;
+
+                if (root.TryGetProperty("type", out var typeElement) &&
+                    typeElement.GetString() == "connected" &&
+                    root.TryGetProperty("widgetSlug", out var slugElement))
+                {
+                    var widgetSlug = slugElement.GetString();
+                    if (!string.IsNullOrEmpty(widgetSlug))
+                    {
+                        Console.WriteLine($"WebSocket received widget slug: {widgetSlug}");
+                        WidgetSlugReceived?.Invoke(widgetSlug);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error parsing WebSocket message: {ex.Message}");
+            }
         });
 
         await _client.Start();

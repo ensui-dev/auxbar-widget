@@ -1,9 +1,15 @@
 ; Auxbar Installer Script for Inno Setup
 ; Download Inno Setup from: https://jrsoftware.org/isinfo.php
 
-#ifndef MyAppVersion
-  #define MyAppVersion "1.0.0"
-#endif
+; Read version from version.json
+; The file format is: { "version": "X.Y.Z" }
+#define VersionFile FileOpen("..\version.json")
+#define VersionLine FileRead(VersionFile)
+#define VersionLine FileRead(VersionFile)
+#expr FileClose(VersionFile)
+; VersionLine now contains:   "version": "X.Y.Z"
+; Extract just the version number
+#define MyAppVersion StringChange(StringChange(Trim(VersionLine), '"version": "', ''), '"', '')
 
 #define MyAppName "Auxbar"
 #define MyAppPublisher "Auxbar"

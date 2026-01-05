@@ -496,6 +496,14 @@ public partial class MainForm : Form
             });
         };
 
+        // Handle widget slug received from WebSocket connection
+        _webSocketService.WidgetSlugReceived += (widgetSlug) =>
+        {
+            Console.WriteLine($"Setting widget slug for Discord RPC: {widgetSlug}");
+            _discordRpcService.WidgetSlug = widgetSlug;
+            ConfigService.UpdateWidgetSlug(widgetSlug);
+        };
+
         // Discord RPC events
         _discordRpcService.Connected += () =>
         {

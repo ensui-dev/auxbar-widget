@@ -204,11 +204,16 @@ public class DiscordRpcService : IDisposable
                 };
             }
 
+            // Log the full presence for debugging
+            Console.WriteLine($"Discord RPC SetPresence: LargeImageKey='{assets.LargeImageKey}', SmallImageKey='{assets.SmallImageKey}'");
+
             _client.SetPresence(presence);
+            Console.WriteLine("Discord RPC SetPresence called successfully");
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Failed to update Discord presence: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
         }
     }
 

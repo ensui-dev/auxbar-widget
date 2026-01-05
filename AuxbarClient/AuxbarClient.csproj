@@ -14,10 +14,14 @@
     <RootNamespace>AuxbarClient</RootNamespace>
     <AssemblyName>AuxbarClient</AssemblyName>
 
-    <!-- Version is read from changelog.json at build time -->
+    <!-- Read version from version.json - using file read at property evaluation time -->
+    <VersionFileContent>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)/../version.json'))</VersionFileContent>
+    <AppVersion>$([System.Text.RegularExpressions.Regex]::Match($(VersionFileContent), '"version"\s*:\s*"([^"]+)"').Groups[1].Value)</AppVersion>
+    <AppVersion Condition="'$(AppVersion)' == ''">1.0.0</AppVersion>
+
     <Version>$(AppVersion)</Version>
-    <AssemblyVersion>$(AppVersion)</AssemblyVersion>
-    <FileVersion>$(AppVersion)</FileVersion>
+    <AssemblyVersion>$(AppVersion).0</AssemblyVersion>
+    <FileVersion>$(AppVersion).0</FileVersion>
 
     <!-- Performance optimizations for faster startup -->
     <PublishReadyToRun>true</PublishReadyToRun>
@@ -27,24 +31,8 @@
     <ApplicationIcon>Resources\app.ico</ApplicationIcon>
   </PropertyGroup>
 
-  <!-- Read version from version.json at build time -->
-  <Target Name="ReadVersionFromFile" BeforeTargets="BeforeBuild">
-    <PropertyGroup>
-      <VersionFilePath>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/../version.json'))</VersionFilePath>
-    </PropertyGroup>
-    <ReadLinesFromFile File="$(VersionFilePath)" Condition="Exists('$(VersionFilePath)')">
-      <Output TaskParameter="Lines" ItemName="VersionLines" />
-    </ReadLinesFromFile>
-    <PropertyGroup Condition="Exists('$(VersionFilePath)')">
-      <VersionContent>@(VersionLines)</VersionContent>
-      <!-- Extract version using regex - matches "version": "X.Y.Z" -->
-      <ExtractedVersion>$([System.Text.RegularExpressions.Regex]::Match($(VersionContent), '"version"\s*:\s*"([^"]+)"').Groups[1].Value)</ExtractedVersion>
-      <AppVersion Condition="'$(ExtractedVersion)' != ''">$(ExtractedVersion)</AppVersion>
-      <AppVersion Condition="'$(AppVersion)' == ''">1.0.0</AppVersion>
-    </PropertyGroup>
-    <PropertyGroup Condition="!Exists('$(VersionFilePath)')">
-      <AppVersion>1.0.0</AppVersion>
-    </PropertyGroup>
+  <!-- Log version at build time -->
+  <Target Name="LogVersion" BeforeTargets="BeforeBuild">
     <Message Importance="High" Text="Building Auxbar Client version $(AppVersion)" />
   </Target>
 
